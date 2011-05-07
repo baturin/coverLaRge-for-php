@@ -18,7 +18,7 @@ class SummarizeCoverageDataProcessor {
         $fileExecuted = false;
 
         $xdebugValues = array();
-        foreach (glob($config['COVERAGE_FILES_DIR'] . DIRECTORY_SEPARATOR . '*') as $coverageFile) {
+        foreach ($this->coverageFiles as $coverageFile) {
             $coverage = unserialize(file_get_contents($coverageFile));
 
             if ($coverage === false) {
@@ -104,7 +104,8 @@ class ReduceFileToFile {
     }    
 }
 
-$fileProcessor = new SummarizeCoverageDataProcessor();
+$coverageFiles = glob($config['COVERAGE_FILES_DIR'] . DIRECTORY_SEPARATOR . '*');
+$fileProcessor = new SummarizeCoverageDataProcessor($coverageFiles);
 $reduceFileToFile = new ReduceFileToFile();
 $reduceFileToFile->process($config['SOURCES_DIR'], $config['RESULTS_DIR'], '.line-coverage', $fileProcessor);
 
