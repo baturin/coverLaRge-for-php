@@ -81,7 +81,7 @@ class SummarizeCoverageDataProcessor {
 }
 
 class ReduceFileToFile {
-    public function process($srcDir, $dstDir, $fileProcessor)
+    public function process($srcDir, $dstDir, $newFilesSuffix, $fileProcessor)
     {
         $iterator = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($srcDir));
 
@@ -91,7 +91,7 @@ class ReduceFileToFile {
                     $relative_path = preg_replace('/^' . preg_quote($srcDir, '/') . '/', '', $file->getPath());
 
                     $results_path = $dstDir . DIRECTORY_SEPARATOR . $relative_path;
-                    $results_file = $results_path . DIRECTORY_SEPARATOR . $file->getFilename() . '.line-coverage';
+                    $results_file = $results_path . DIRECTORY_SEPARATOR . $file->getFilename() . $newFilesSuffix;
                     if (!is_dir($results_path)) {
                         mkdir($results_path, 0777, true);
                     }
@@ -106,6 +106,6 @@ class ReduceFileToFile {
 
 $fileProcessor = new SummarizeCoverageDataProcessor();
 $reduceFileToFile = new ReduceFileToFile();
-$reduceFileToFile->process($config['SOURCES_DIR'], $config['RESULTS_DIR'], $fileProcessor);
+$reduceFileToFile->process($config['SOURCES_DIR'], $config['RESULTS_DIR'], '.line-coverage', $fileProcessor);
 
 ?>
