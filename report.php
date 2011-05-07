@@ -41,25 +41,25 @@ class SummarizeCoverageDataProcessor {
                         } else {
                             throw new Exception("Unknow xdebug line value: $lineValue");
                         }
-                    } 
 
-                    if (array_key_exists($lineNumber, $xdebugValues)) { 
-                        // value for this line already exists in previously processed files
-                        $oldXdebugValue = $xdebugValues[$lineNumber];
+                        if (array_key_exists($lineNumber, $xdebugValues)) { 
+                            // value for this line already exists in previously processed files
+                            $oldXdebugValue = $xdebugValues[$lineNumber];
 
-                        if ($oldXdebugValue == $xdebugValue) {
-                            // no changes - skip
-                        } else if ($oldXdebugValue == LINE_NOT_EXECUTED && $xdebugValue == LINE_EXECUTED) {
+                            if ($oldXdebugValue == $xdebugValue) {
+                                // no changes - skip
+                            } else if ($oldXdebugValue == LINE_NOT_EXECUTED && $xdebugValue == LINE_EXECUTED) {
+                                $xdebugValues[$lineNumber] = $xdebugValue;
+                            } else if ($oldXdebugValue == LINE_EXECUTED && $xdebugValue == LINE_NOT_EXECUTED) {
+                                // line is executed at least in one file
+                            } else {
+                                throw new Exception("Value change prohibited. $oldXdebugValue -> $xdebugValue");
+                            }
+                        } else { 
+                            // initial value, this line number doesn't exits in previously processed files
                             $xdebugValues[$lineNumber] = $xdebugValue;
-                        } else if ($oldXdebugValue == LINE_EXECUTED && $xdebugValue == LINE_NOT_EXECUTED) {
-                            // line is executed at least in one file
-                        } else {
-                            throw new Exception("Value change prohibited. $oldXdebugValue -> $xdebugValue");
                         }
-                    } else { 
-                        // initial value, this line number doesn't exits in previously processed files
-                        $xdebugValues[$lineNumber] = $xdebugValue;
-                    }
+                    } 
                 }
             }
         }
