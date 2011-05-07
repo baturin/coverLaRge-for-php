@@ -9,7 +9,7 @@ class FormatFileAccordingToCoverageProcessor {
     private function styledLine($number, $line, $color)
     {
         return '<div style="background-color: ' . $color . '">' . 
-            $lineNumber . '&nbsp;' . htmlentities($line) . 
+            $number. '&nbsp;' . htmlentities($line) . 
             '</div>';
     }
 
