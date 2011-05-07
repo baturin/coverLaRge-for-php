@@ -1,6 +1,5 @@
 <?php
 
-require_once 'config.php';
 require_once 'common.php';
 require_once 'classes/ReduceFileToFile.php';
 require_once 'classes/AllFileFilter.php';
@@ -39,8 +38,28 @@ class FormatFileAccordingToCoverageProcessor {
     }
 }
 
-$fileProcessor = new FormatFileAccordingToCoverageProcessor($coverageFiles);
+function printUsage() {
+    echo 'Make HTML files for each source code file with coverage information.' . PHP_EOL;
+    echo 'Usage:' . PHP_EOL;
+    echo '  php report-html-file-coverage.php PREPROCESSED_DATA_DIRECTORY HTML_FILES_DIRECTORY' . PHP_EOL;
+    echo '    where:' . PHP_EOL;
+    echo '      PREPROCESSED_DATA_DIRECTORY - directory with data prepared with prepare.php script' . PHP_EOL;
+    echo '      HTML_FILES_DIRECTORY - directory to put HTML files to' . PHP_EOL;
+    echo '    all directories must not contain trailing slash' . PHP_EOL;
+}
+
+if (count($argv) != 3) {
+    echo 'Invalid arguments.' . PHP_EOL;
+    echo PHP_EOL;
+    printUsage();
+    exit(1);
+}
+
+$preprocessedDataDir = $argv[1];
+$htmlFilesDir = $argv[2];
+
+$fileProcessor = new FormatFileAccordingToCoverageProcessor();
 $reduceFileToFile = new ReduceFileToFile();
-$reduceFileToFile->process($config['RESULTS_DIR'], '/home/alexey/phppgadmin/html-result', '.html', $fileProcessor, new AllFileFilter());
+$reduceFileToFile->process($preprocessedDataDir, $htmlFilesDir, '.html', $fileProcessor, new AllFileFilter());
 
 ?>
