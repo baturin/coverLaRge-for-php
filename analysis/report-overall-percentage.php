@@ -1,6 +1,5 @@
 <?php
 
-require_once 'config.php';
 require_once 'common.php';
 require_once 'classes/ReduceFileToFile.php';
 require_once 'classes/AllFileFilter.php';
@@ -40,8 +39,26 @@ class CoveragePercentageProcessor {
     }
 }
 
+function printUsage() {
+    echo 'Print total coverage statistics.' . PHP_EOL;
+    echo 'Usage:' . PHP_EOL;
+    echo '  php report-overall-percentage.php PREPROCESSED_DATA_DIRECTORY' . PHP_EOL;
+    echo '    where:' . PHP_EOL;
+    echo '      PREPROCESSED_DATA_DIRECTORY - directory with data prepared with prepare.php script' . PHP_EOL;
+    echo '    all directories must not contain trailing slash' . PHP_EOL;
+}
+
+if (count($argv) != 2) {
+    echo 'Invalid arguments.' . PHP_EOL;
+    echo PHP_EOL;
+    printUsage();
+    exit(1);
+}
+
+$preprocessedDataDir = $argv[1];
+
 $processor = new CoveragePercentageProcessor();
-foreach (new FilesDirectoryIterator($config['RESULTS_DIR'], new AllFileFilter()) as $fileName) {
+foreach (new FilesDirectoryIterator($preprocessedDataDir, new AllFileFilter()) as $fileName) {
     $processor->process($fileName);
 }
 
