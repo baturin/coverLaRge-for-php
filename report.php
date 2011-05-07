@@ -1,88 +1,103 @@
 <?php
 
 require_once 'config.php';
+require_once 'common.php';
+
+class SummarizeCoverageDataProcessor {
+    private $coverageFiles;
+
+    public function __construct($coverageFiles)
+    {
+        $this->coverageFiles = $coverageFiles;
+    }
+
+    public function process($fileName)
+    {
+        global $config;
+        $fileCoverage = array();
+        $fileExecuted = false;
+
+        $xdebugValues = array();
+        foreach (glob($config['COVERAGE_FILES_DIR'] . DIRECTORY_SEPARATOR . '*') as $coverageFile) {
+            $coverage = unserialize(file_get_contents($coverageFile));
+
+            if ($coverage === false) {
+                throw new Exception("Failed to unserialize coverage data from '$coverageFile' file");
+            }
+
+            foreach ($coverage as $filePathname => $lines) {
+                if ($filePathname == $fileName) {
+                    $fileExecuted = true;
+
+                    foreach ($lines as $lineNumber => $lineValue) {
+                        if ($lineValue > 0) {
+                            $xdebugValue = LINE_EXECUTED;
+                        } else if ($lineValue == -1) {
+                            $xdebugValue = LINE_NOT_EXECUTED;
+                        } else if ($lineValue == -2) {
+                            $xdebugValue = LINE_UNKNOWN;
+                        } else {
+                            throw new Exception("Unknow xdebug line value: $lineValue");
+                        }
+                    } 
+
+                    if (array_key_exists($lineNumber, $xdebugValues)) { 
+                        // value for this line already exists in previously processed files
+                        $oldXdebugValue = $xdebugValues[$lineNumber];
+
+                        if ($oldXdebugValue == $xdebugValue) {
+                            // no changes - skip
+                        } else if ($oldXdebugValue == LINE_NOT_EXECUTED && $xdebugValue == LINE_EXECUTED) {
+                            $xdebugValues[$lineNumber] = $xdebugValue;
+                        } else if ($oldXdebugValue == LINE_EXECUTED && $xdebugValue == LINE_NOT_EXECUTED) {
+                            // line is executed at least in one file
+                        } else {
+                            throw new Exception("Value change prohibited. $oldXdebugValue -> $xdebugValue");
+                        }
+                    } else { 
+                        // initial value, this line number doesn't exits in previously processed files
+                        $xdebugValues[$lineNumber] = $xdebugValue;
+                    }
+                }
+            }
+        }
+        
+        $fileLinesCount = count(file($fileName));
+
+        for ($lineNumber = 1; $lineNumber <= $fileLinesCount; $lineNumber++) {
+            if ($fileExecuted) {
+                if (array_key_exists($lineNumber, $xdebugValues)) {
+                    $fileCoverage[$lineNumber] = $xdebugValues[$lineNumber];
+                } else {
+                    $fileCoverage[$lineNumber] = LINE_USELESS;
+                }
+            } else {
+                $fileCoverage[$lineNumber] = LINE_NOT_EXECUTED;
+            }
+        }
+
+        return $fileCoverage;
+    }
+}
+
+$fileProcessor = new SummarizeCoverageDataProcessor();
 
 $iterator = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($config['SOURCES_DIR']));
 
-define('LINE_NOT_EXECUTED', 1);
-define('LINE_UNKNOWN', 2); 
-define('LINE_USELESS', 3); // comments, blank lines, etc
-define('LINE_EXECUTED', 4);
-
-function styled_line($number, $line, $color)
-{
-    return '<div style="background-color: ' . $color . '">' . 
-        $lineNumber . '&nbsp;' . htmlentities($line) . 
-        '</div>';
-}
-
 foreach ($iterator as $file) {
+    echo (memory_get_usage() / 1024) . PHP_EOL;
     if ($file->isFile()) {
         if (preg_match('/\.php$/', $file->getFilename())) {
             $relative_path = preg_replace('/^' . preg_quote($config['SOURCES_DIR'], '/') . '/', '', $file->getPath());
 
             $results_path = $config['RESULTS_DIR'] . DIRECTORY_SEPARATOR . $relative_path;
-            $results_file = $results_path . DIRECTORY_SEPARATOR . $file->getFilename() . '.html';
-
+            $results_file = $results_path . DIRECTORY_SEPARATOR . $file->getFilename() . '.line-coverage';
             if (!is_dir($results_path)) {
                 mkdir($results_path, 0777, true);
             }
 
-            $fileCoverage = array();
-
-            $fileExecuted = false;
-
-            foreach (glob($config['COVERAGE_FILES_DIR'] . DIRECTORY_SEPARATOR . '*') as $coverageFile ) {
-                $coverage = unserialize(file_get_contents($coverageFile));
-                foreach ($coverage as $filePathname => $lines) {
-                    if ($filePathname == $file->getPathname()) {
-                        $fileExecuted = true;
-                        foreach ($lines as $lineNumber => $lineValue) {
-                            if ($lineValue > 0) {
-                                $fileCoverage[$lineNumber] = LINE_EXECUTED;
-                            } else if ($lineValue == -1) {
-                                $fileCoverage[$lineNumber] = LINE_DEAD;
-                            } else if ($lineValue == -2) {
-                                $fileCoverage[$lineNumber] = LINE_UNUSED;
-                            } else {
-                                $fileCoverage[$lineNumber] = LINE_NOT_EXECUTED;
-                            }
-                        }                    
-                    }
-                }
-            }
-
-            $fileLines = file($file->getPathname());
-            $fp = fopen($results_file, 'w');
-
-            if ($fp == false) {
-                throw new Exception("Failed to open result file '$results_file' for writing");
-            }
-        
-            $lineNumber = 1;
-            foreach ($fileLines as $line) {
-                if ($fileExecuted) {
-                    if (array_key_exists($lineNumber, $fileCoverage)) {
-                        if ($fileCoverage[$lineNumber] == LINE_DEAD) {
-                            fwrite($fp,  styled_line($lineNumber, $line, 'red'));
-                        } else if ($fileCoverage[$lineNumber] == LINE_UNUSED) {
-                            fwrite($fp, styled_line($lineNumber, $line, 'grey'));
-                        } else if ($fileCoverage[$lineNumber] == LINE_EXECUTED) {
-                            fwrite($fp, styled_line($lineNumber, $line, 'green'));
-                        } else {
-                            throw new Exception();
-                        }
-                    } else {
-                        fwrite($fp, styled_line($lineNumber, $line, 'white'));
-                    } 
-                } else {
-                    fwrite($fp, styled_line($lineNumber, $line, 'red'));
-                }
-
-                $lineNumber++;
-            }
-
-            fclose($fp);
+            $result = $fileProcessor->process($file->getPathname());
+            file_put_contents($results_file, serialize($result));
         }
     }
 }
