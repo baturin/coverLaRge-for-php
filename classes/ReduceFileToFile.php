@@ -1,13 +1,13 @@
 <?php
 
 class ReduceFileToFile {
-    public function process($srcDir, $dstDir, $newFilesSuffix, $fileProcessor)
+    public function process($srcDir, $dstDir, $newFilesSuffix, $fileProcessor, $fileFilter)
     {
         $iterator = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($srcDir));
 
         foreach ($iterator as $file) {
             if ($file->isFile()) {
-                if (preg_match('/\.php$/', $file->getFilename())) {
+                if ($fileFilter->filter($file->getFilename())) {
                     $relative_path = preg_replace('/^' . preg_quote($srcDir, '/') . '/', '', $file->getPath());
 
                     $results_path = $dstDir . DIRECTORY_SEPARATOR . $relative_path;
@@ -17,8 +17,8 @@ class ReduceFileToFile {
                     }
 
                     $result = $fileProcessor->process($file->getPathname());
-                    file_put_contents($results_file, serialize($result));
-                }
+                    file_put_contents($results_file, $result);
+               }
             }
         }
     }    

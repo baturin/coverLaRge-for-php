@@ -3,6 +3,7 @@
 require_once 'config.php';
 require_once 'common.php';
 require_once 'classes/ReduceFileToFile.php';
+require_once 'classes/ExtensionFileFilter.php';
 
 class SummarizeCoverageDataProcessor {
     private $coverageFiles;
@@ -77,13 +78,16 @@ class SummarizeCoverageDataProcessor {
             }
         }
 
-        return $fileCoverage;
+        return serialize(array(
+            'sourceFile' => $fileName,
+            'linesCoverage' => $fileCoverage
+        ));
     }
 }
 
 $coverageFiles = glob($config['COVERAGE_FILES_DIR'] . DIRECTORY_SEPARATOR . '*');
 $fileProcessor = new SummarizeCoverageDataProcessor($coverageFiles);
 $reduceFileToFile = new ReduceFileToFile();
-$reduceFileToFile->process($config['SOURCES_DIR'], $config['RESULTS_DIR'], '.line-coverage', $fileProcessor);
+$reduceFileToFile->process($config['SOURCES_DIR'], $config['RESULTS_DIR'], '.line-coverage', $fileProcessor, new ExtensionFileFilter('php'));
 
 ?>
