@@ -8,7 +8,7 @@ require_once 'classes/AllFileFilter.php';
 class FormatFileAccordingToCoverageProcessor {
     private function styledLine($number, $line, $color)
     {
-        return '<div style="background-color: ' . $color . '">' . 
+        return '<div style="background-color: ' . $color . '; white-space: pre; font-family: monospace;">' . 
             $number. '&nbsp;' . htmlentities($line) . 
             '</div>';
     }
@@ -25,10 +25,13 @@ class FormatFileAccordingToCoverageProcessor {
         );
 
         $lineNumber = 1;
+        
+        $maxLineNumber = count($linesData['linesCoverage']) + 1;
+        $lineNumberLength = strlen($maxLineNumber);
 
         $result = '';
         foreach (file($linesData['sourceFile']) as $line) {
-            $result .= $this->styledLine($lineNumber, $line, $colorsByLineType[$linesData['linesCoverage'][$lineNumber]]);
+            $result .= $this->styledLine(str_pad($lineNumber, $lineNumberLength, ' ', 'STR_PAD_BOTH'), $line, $colorsByLineType[$linesData['linesCoverage'][$lineNumber]]);
             $lineNumber++;
         }
 
